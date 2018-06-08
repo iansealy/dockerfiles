@@ -1,0 +1,85 @@
+diff -rc pine4.64/pine/mailcmd.c pine4.64.searchheader/pine/mailcmd.c
+*** pine4.64/pine/mailcmd.c	Mon Sep 12 15:04:25 2005
+--- pine4.64.searchheader/pine/mailcmd.c	Wed Sep 28 19:44:45 2005
+***************
+*** 267,272 ****
+--- 267,273 ----
+      {'r', 'r', "R", "Recipient"},
+      {'p', 'p', "P", "Participant"},
+      {'b', 'b', "B", "Body"},
++     {'h', 'h', "H", "Header"},
+      {-1, 0, NULL, NULL}
+  };
+  
+***************
+*** 12393,12399 ****
+  {
+      int          r, type, we_cancel = 0, not = 0, flags, old_imap;
+      char         sstring[80], savedsstring[80], origcharset[16], tmp[128];
+!     char        *sval = NULL, *cset = NULL, *charset = NULL;
+      char         buftmp[MAILTMPLEN];
+      ESCKEY_S     ekey[4];
+      ENVELOPE    *env = NULL;
+--- 12394,12400 ----
+  {
+      int          r, type, we_cancel = 0, not = 0, flags, old_imap;
+      char         sstring[80], savedsstring[80], origcharset[16], tmp[128];
+!     char	 namehdr[80], *sval = NULL, *cset = NULL, *charset = NULL;
+      char         buftmp[MAILTMPLEN];
+      ESCKEY_S     ekey[4];
+      ENVELOPE    *env = NULL;
+***************
+*** 12467,12472 ****
+--- 12468,12507 ----
+  	sval = "BODYTEXT";
+  	break;
+  
++       case 'h' :
++ 	sprintf(tmp, "Name of HEADER to match : ");
++ 	flags = OE_APPEND_CURRENT;
++ 	namehdr[0] = '\0';
++ 	r = 'x';
++ 	while (r == 'x'){
++ 	       int done = 0;
++ 
++ 	       r = optionally_enter(namehdr, -FOOTER_ROWS(ps_global), 0,
++ 				 sizeof(namehdr), tmp, ekey, NO_HELP, &flags);
++ 	       if (r == 1){
++ 		  cmd_cancelled("Selection by text");
++ 		  return(1);
++ 	       }
++ 	       removing_leading_white_space(namehdr);
++ 	       while(!done){
++ 	          while ((namehdr[0] != '\0') && /* remove trailing ":" */
++ 			(namehdr[strlen(namehdr) - 1] == ':'))
++ 		     namehdr[strlen(namehdr) - 1] = '\0';
++ 		  if ((namehdr[0] != '\0') 
++ 		     && isspace((unsigned char) namehdr[strlen(namehdr) - 1]))
++ 		       removing_trailing_white_space(namehdr);
++ 		  else
++ 		    done++;
++ 	       }
++ 	       if (strchr(namehdr,' ') || strchr(namehdr,'\t') ||
++ 		   strchr(namehdr,':'))
++ 		  namehdr[0] = '\0';
++ 	       if (namehdr[0] == '\0')
++ 	         r = 'x';
++ 	}
++ 	sval = namehdr;
++ 	break;
++ 
+        case 'x':
+  	break;
+  
+***************
+*** 12590,12595 ****
+--- 12625,12633 ----
+      }
+  
+      switch(type){
++       case 'h' :				/* Any header */
++ 	pgm->header = mail_newsearchheader (namehdr,sstring);
++ 	break;
+        case 'r' :				/* TO or CC */
+  	if(old_imap){
+  	    /* No OR on old servers */

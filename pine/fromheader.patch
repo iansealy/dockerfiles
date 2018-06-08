@@ -1,0 +1,160 @@
+diff -rc pine4.64/pine/init.c pine4.64.fromheader/pine/init.c
+*** pine4.64/pine/init.c	Mon Sep 12 11:53:17 2005
+--- pine4.64.fromheader/pine/init.c	Wed Sep 28 19:44:32 2005
+***************
+*** 2647,2652 ****
+--- 2647,2654 ----
+  	 F_AUTO_FCC_ONLY, h_config_auto_fcc_only, PREF_SEND},
+  	{"fcc-without-attachments",
+  	 F_NO_FCC_ATTACH, h_config_no_fcc_attach, PREF_SEND},
++         {"return-path-uses-domain-name",
++          F_USE_DOMAIN_NAME, h_config_use_domain, PREF_SEND},
+  	{"mark-fcc-seen",
+  	 F_MARK_FCC_SEEN, h_config_mark_fcc_seen, PREF_SEND},
+  	{"send-without-confirm",
+diff -rc pine4.64/pine/pine.h pine4.64.fromheader/pine/pine.h
+*** pine4.64/pine/pine.h	Thu Sep 15 17:39:42 2005
+--- pine4.64.fromheader/pine/pine.h	Wed Sep 28 19:44:32 2005
+***************
+*** 1210,1215 ****
+--- 1210,1216 ----
+  	F_AUTO_REPLY_TO,
+  	F_VERBOSE_POST,
+  	F_FCC_ON_BOUNCE,
++ 	F_USE_DOMAIN_NAME,
+  	F_SEND_WO_CONFIRM,
+  	F_USE_SENDER_NOT_X,
+  	F_BLANK_KEYMENU,
+diff -rc pine4.64/pine/pine.hlp pine4.64.fromheader/pine/pine.hlp
+*** pine4.64/pine/pine.hlp	Wed Sep 28 10:56:29 2005
+--- pine4.64.fromheader/pine/pine.hlp	Wed Sep 28 19:44:32 2005
+***************
+*** 25891,25896 ****
+--- 25891,25912 ----
+  &lt;End of help on this topic&gt;
+  </BODY>
+  </HTML>
++ ====== h_config_use_domain =====
++ <HTML>
++ <HEAD>
++ <TITLE>FEATURE: return-path-uses-domain-name </TITLE>
++ </HEAD>
++ <BODY>
++ <H1>FEATURE: return-path-uses-domain-name</H1>
++ 
++ If you enable this configuration option Pine will use your domain name and your
++ username in that domain name to construct your Return-Path header, if not Pine
++ will use the address that you have set in the From: field to construct it.
++ 
++ <P>
++ &lt;End of help on this topic&gt;
++ </BODY>
++ </HTML>
+  ====== h_config_use_sender_not_x =====
+  <HTML>
+  <HEAD>
+diff -rc pine4.64/pine/send.c pine4.64.fromheader/pine/send.c
+*** pine4.64/pine/send.c	Mon Sep 12 15:04:25 2005
+--- pine4.64.fromheader/pine/send.c	Wed Sep 28 19:44:32 2005
+***************
+*** 2195,2201 ****
+  static struct headerentry he_template[]={
+    {"From    : ",  "From",        h_composer_from,       10, 0, NULL,
+     build_address, NULL, NULL, addr_book_compose,    "To AddrBk", NULL,
+!    0, 1, 0, 1, 0, 1, 0, 0, 0, 0, KS_TOADDRBOOK},
+    {"Reply-To: ",  "Reply To",    h_composer_reply_to,   10, 0, NULL,
+     build_address, NULL, NULL, addr_book_compose,    "To AddrBk", NULL,
+     0, 1, 0, 1, 0, 1, 0, 0, 0, 0, KS_TOADDRBOOK},
+--- 2195,2201 ----
+  static struct headerentry he_template[]={
+    {"From    : ",  "From",        h_composer_from,       10, 0, NULL,
+     build_address, NULL, NULL, addr_book_compose,    "To AddrBk", NULL,
+!    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, KS_TOADDRBOOK},
+    {"Reply-To: ",  "Reply To",    h_composer_reply_to,   10, 0, NULL,
+     build_address, NULL, NULL, addr_book_compose,    "To AddrBk", NULL,
+     0, 1, 0, 1, 0, 1, 0, 0, 0, 0, KS_TOADDRBOOK},
+***************
+*** 2302,2308 ****
+  #define	N_OURREPLYTO  21
+  #define	N_OURHDRS 22
+  #define N_SENDER  23
+! 
+  #define TONAME "To"
+  #define CCNAME "cc"
+  #define SUBJNAME "Subject"
+--- 2302,2309 ----
+  #define	N_OURREPLYTO  21
+  #define	N_OURHDRS 22
+  #define N_SENDER  23
+! #define CAN_EDIT(x) (!((x)->never_allow_changing_from) && \
+!                        F_ON(F_ALLOW_CHANGING_FROM, (x)))
+  #define TONAME "To"
+  #define CCNAME "cc"
+  #define SUBJNAME "Subject"
+***************
+*** 2310,2316 ****
+  /* this is used in pine_send and pine_simple_send */
+  /* name::type::canedit::writehdr::localcopy::rcptto */
+  static PINEFIELD pf_template[] = {
+!   {"From",        Address,	0, 1, 1, 0},
+    {"Reply-To",    Address,	0, 1, 1, 0},
+    {TONAME,        Address,	1, 1, 1, 1},
+    {CCNAME,        Address,	1, 1, 1, 1},
+--- 2311,2317 ----
+  /* this is used in pine_send and pine_simple_send */
+  /* name::type::canedit::writehdr::localcopy::rcptto */
+  static PINEFIELD pf_template[] = {
+!   {"From",        Address,	1, 1, 1, 0},
+    {"Reply-To",    Address,	0, 1, 1, 0},
+    {TONAME,        Address,	1, 1, 1, 1},
+    {CCNAME,        Address,	1, 1, 1, 1},
+***************
+*** 2459,2465 ****
+  	    strncpy(pf->name, "Sender", 7);
+  
+          pf->type        = pf_template[i].type;
+! 	pf->canedit     = pf_template[i].canedit;
+  	pf->rcptto      = pf_template[i].rcptto;
+  	pf->writehdr    = pf_template[i].writehdr;
+  	pf->localcopy   = pf_template[i].localcopy;
+--- 2460,2466 ----
+  	    strncpy(pf->name, "Sender", 7);
+  
+          pf->type        = pf_template[i].type;
+! 	pf->canedit     = (i == N_FROM) ? CAN_EDIT(ps_global) : pf_template[i].canedit;
+  	pf->rcptto      = pf_template[i].rcptto;
+  	pf->writehdr    = pf_template[i].writehdr;
+  	pf->localcopy   = pf_template[i].localcopy;
+***************
+*** 3664,3669 ****
+--- 3665,3675 ----
+  			he->rich_header = 0;
+  		    }
+  		}
++ 		if (F_ON(F_ALLOW_CHANGING_FROM, ps_global) &&
++ 		   !ps_global->never_allow_changing_from){
++ 		  he->display_it  = 1;  /* show it */
++ 		  he->rich_header = 0;
++ 		}
+  
+  		he_from			= he;
+  		break;
+***************
+*** 4347,4353 ****
+  	if(outgoing->return_path)
+  	  mail_free_address(&outgoing->return_path);
+  
+! 	outgoing->return_path = rfc822_cpy_adr(outgoing->from);
+  
+  	/*
+  	 * Don't ever believe the sender that is there.
+--- 4353,4361 ----
+  	if(outgoing->return_path)
+  	  mail_free_address(&outgoing->return_path);
+  
+!         outgoing->return_path = F_ON(F_USE_DOMAIN_NAME,ps_global) 
+! 				? rfc822_cpy_adr(generate_from())
+! 				: rfc822_cpy_adr(outgoing->from);
+  
+  	/*
+  	 * Don't ever believe the sender that is there.
